@@ -68,9 +68,24 @@ int main(int argc, char **argv){
  * convenience.
  */
 unsigned int stringHash(void *s){
-  char *string = (char *) s;
-  fprintf(stderr,"Need to define stringHash\n");
-  exit(0);
+    /// hash function from this source
+    //www.codereview.stackexchange.com/questions/85556/simple-string-hashing-algorithm-implementation
+    if (s == NULL) {
+        return 0;
+    }
+
+    unsigned hash = 0;
+    while (*s != '\0') {
+        char c = *s++;
+        int a = c - '0';
+        hash = (hash * 10) + a;     
+    } 
+    return hash;
+  //char *string = (char *) s;
+  //int *size = strlen(string);
+  //return supefasthash();
+  //fprintf(stderr,"Need to define stringHash\n");
+  //exit(0);
 }
 
 /*
@@ -81,8 +96,15 @@ unsigned int stringHash(void *s){
 int stringEquals(void *s1, void *s2){
   char *string1 = (char *) s1;
   char *string2 = (char *) s2;
-  fprintf(stderr,"Need to define stringEquals\n");
-  exit(0);
+  
+  if strcmp(string1, string2){
+        return 0
+  }
+  else{
+        return 1
+  }
+  //fprintf(stderr,"Need to define stringEquals\n");
+  //exit(0);
 }
 
 /*
@@ -100,8 +122,31 @@ int stringEquals(void *s1, void *s2){
  * safely use fscanf() to read in the strings.
  */
 void readDictionary(char *filename){
-  fprintf(stderr,"Need to define readDictionary\n");
-  exit(0);
+  char word[70];
+  FILE *fin;
+  fin *fopen(filename, "r");
+  if (fin != NULL){
+    fscanf(fin, "%s", word)
+    while (word != EOF){
+        int size=(strlen(input)+1)*sizeof(char)
+        char * newWord =(char *)malloc(size)
+        strcpy(newWord, word);
+        
+        free(newWord)
+    }
+    fclose(filename)
+  }
+  else{
+        printf("NO file found")
+  
+  }
+
+
+  //free old
+  //realoc 
+  
+  //fprintf(stderr,"Need to define readDictionary\n");
+  //exit(0);
 }
 
 
@@ -129,6 +174,6 @@ void readDictionary(char *filename){
  * of your grade, you can no longer assume words have a bounded length.
  */
 void processInput(){
-  fprintf(stderr,"Need to define processInput\n");
-  exit(0);
+  //fprintf(stderr,"Need to define processInput\n");
+  //exit(0);
 }
