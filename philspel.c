@@ -203,7 +203,7 @@ void processInput(){
                         }
                     }    
                 }
-
+            
 
         }
             if (( c == '\n' && c != EOF)) {
@@ -212,10 +212,12 @@ void processInput(){
             else if (c==' ' || ispunct(c) || isdigit(c) ) {
                fprintf(stdout, "%c",c);
             }
-            
+            else if (c==EOF){
+                break;
+            }
         }
         
         }
-    free(word);
+    //free(word);
 
 }
