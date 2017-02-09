@@ -114,25 +114,42 @@ int stringEquals(void *s1, void *s2){
  * safely use fscanf() to read in the strings.
  */
 void readDictionary(char *filename){
-  char word[70];
-  char *key;
-  int size;
-  key= malloc(sizeof(char));
+  char c;
+  c='c';
+  char *word;
+  //int size;
+  int len=70;
+  word = malloc((len+1)*sizeof(char));
+  int i;
+  i=0;
+  //key= malloc(sizeof(char));
   FILE * fin;
   fin = fopen(filename, "r");
   if (fin != NULL){
-    while (fscanf(fin, "%s", word) != EOF){
-        size = (strlen(word)+1)*sizeof(char);
-        key = malloc(size*sizeof(char));
-        strcpy(key, word);
-        insertData(dictionary, key, word); 
-    }
+    while (c != EOF){
+        c = getchar();
+        if (isalpha(c)){
+            word[i]=c;
+            i++;
+            if (i > (len-2)){
+               len+=70;
+               word = realloc(word, (70*sizeof(char)));
+            }
+        }
+        else {
+            word[i]='\0';
+            i=0;
+            insertData(dictionary, word, word);
+            }
+            }
+            
+    //printf("down");
     fclose(fin);
-  }
-  else{
+    }
+    else{
         printf("Sorry, no file found");
-  }
-  free(key);
+    }
+  //free(key);
 }
 
 
@@ -160,7 +177,7 @@ void readDictionary(char *filename){
  * of your grade, you can no longer assume words have a bounded length.
  */
 void processInput(){
-    char c=1;
+    char c='c';
     int i;
     int len=70;
     i=0;
@@ -173,7 +190,7 @@ void processInput(){
             i++;
             if (i > len){
                     len+=70;
-               word = realloc(word, 70);
+               word = realloc(word, 70*sizeof(char));
             }
         }
         else {
