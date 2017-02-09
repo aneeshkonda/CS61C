@@ -126,9 +126,10 @@ void readDictionary(char *filename){
   FILE * fin;
   fin = fopen(filename, "r");
   if (fin != NULL){
-    while (c != EOF){
-        c = getchar();
-        if (isalpha(c)){
+    while (c!=EOF){
+        c = getc(fin);
+        //printf("%c", c);
+        if (isalpha(c) && c!='\n'){
             word[i]=c;
             i++;
             if (i > (len-2)){
@@ -140,6 +141,7 @@ void readDictionary(char *filename){
             word[i]='\0';
             i=0;
             insertData(dictionary, word, word);
+            //fprintf(stdout, "%s\n", word);  
             }
             }
             
@@ -149,7 +151,7 @@ void readDictionary(char *filename){
     else{
         printf("Sorry, no file found");
     }
-  //free(key);
+  free(word);
 }
 
 
@@ -180,6 +182,7 @@ void processInput(){
     char c='c';
     int i;
     int len=70;
+    int j;
     i=0;
     char * word;
     word = malloc((len+1)*sizeof(char));
@@ -199,7 +202,6 @@ void processInput(){
 
             if (word[0] != '\0'){
             fprintf(stdout, "%s", word);    
-                int j;
                 j=1;
                 if (findData(dictionary, word)!= NULL){
                 }
