@@ -114,8 +114,8 @@ int stringEquals(void *s1, void *s2){
  * safely use fscanf() to read in the strings.
  */
 void readDictionary(char *filename){
-  char c;
-  c='c';
+  int c;
+  c=0;
   char *word;
   //int size;
   int len=70;
@@ -179,7 +179,8 @@ void readDictionary(char *filename){
  * of your grade, you can no longer assume words have a bounded length.
  */
 void processInput(){
-    char c='c';
+    int c;
+    c=0;
     int i;
     int len=70;
     int j;
