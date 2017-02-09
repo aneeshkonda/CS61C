@@ -69,23 +69,15 @@ int main(int argc, char **argv){
  */
 unsigned int stringHash(void *s){
     /// hash function from this source
-    //www.codereview.stackexchange.com/questions/85556/simple-string-hashing-algorithm-implementation
-    if (s == NULL) {
-        return 0;
+    //www.cse.yorku.ca/~oz/hash.html
+    char *str = (char *) s;
+    unsigned long hash = 5381;
+    int c;
+    while ((c = *str++)){
+        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
     }
 
-    unsigned hash = 0;
-    while (*s != '\0') {
-        char c = *s++;
-        int a = c - '0';
-        hash = (hash * 10) + a;     
-    } 
     return hash;
-  //char *string = (char *) s;
-  //int *size = strlen(string);
-  //return supefasthash();
-  //fprintf(stderr,"Need to define stringHash\n");
-  //exit(0);
 }
 
 /*
@@ -97,11 +89,11 @@ int stringEquals(void *s1, void *s2){
   char *string1 = (char *) s1;
   char *string2 = (char *) s2;
   
-  if strcmp(string1, string2){
-        return 0
+  if (strcmp(string1, string2)){
+        return 0;
   }
   else{
-        return 1
+        return 1;
   }
   //fprintf(stderr,"Need to define stringEquals\n");
   //exit(0);
@@ -123,30 +115,24 @@ int stringEquals(void *s1, void *s2){
  */
 void readDictionary(char *filename){
   char word[70];
-  FILE *fin;
-  fin *fopen(filename, "r");
+  char *key;
+  int size;
+  key= malloc(sizeof(char));
+  FILE * fin;
+  fin = fopen(filename, "r");
   if (fin != NULL){
-    fscanf(fin, "%s", word)
-    while (word != EOF){
-        int size=(strlen(input)+1)*sizeof(char)
-        char * newWord =(char *)malloc(size)
-        strcpy(newWord, word);
-        
-        free(newWord)
+    while (fscanf(fin, "%s", word) != EOF){
+        size = (strlen(word)+1)*sizeof(char);
+        key = malloc(size*sizeof(char));
+        strcpy(key, word);
+        insertData(dictionary, key, word); 
     }
-    fclose(filename)
+    fclose(fin);
   }
   else{
-        printf("NO file found")
-  
+        printf("Sorry, no file found");
   }
-
-
-  //free old
-  //realoc 
-  
-  //fprintf(stderr,"Need to define readDictionary\n");
-  //exit(0);
+  free(key);
 }
 
 
@@ -174,6 +160,62 @@ void readDictionary(char *filename){
  * of your grade, you can no longer assume words have a bounded length.
  */
 void processInput(){
-  //fprintf(stderr,"Need to define processInput\n");
-  //exit(0);
+    char c=1;
+    int i;
+    int len=70;
+    i=0;
+    char * word;
+    word = malloc((len+1)*sizeof(char));
+    while (c != EOF){
+        c = getchar();
+        if (isalpha(c)){
+            word[i]=c;
+            i++;
+            if (i > len){
+                    len+=70;
+               word = realloc(word, 70);
+            }
+        }
+        else {
+            word[i]='\0';
+            i=0;
+
+            if (word[0] != '\0'){
+            fprintf(stdout, "%s", word);    
+                int j;
+                j=1;
+                if (findData(dictionary, word)!= NULL){
+                }
+                else{
+                    while (word[j] != '\0'){
+                            word[j]= tolower(word[j]);
+                            j++;
+                        }
+                    if (findData(dictionary, word)!= NULL){
+                    }
+                    else{
+                        word[0]=tolower(word[0]);
+
+                        if (findData(dictionary, word)!= NULL){
+                        }
+                        else{
+                            fprintf(stdout, " [sic]");
+                        }
+                    }    
+                }
+
+
+        }
+            if (( c == '\n' && c != EOF)) {
+                fprintf(stdout, "%c",c);
+            }
+            else if (c==' ' || ispunct(c) || isdigit(c) ) {
+               fprintf(stdout, "%c",c);
+            }
+            
+        }
+        
+        }
+    free(word);
+
 }
