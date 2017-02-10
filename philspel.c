@@ -127,7 +127,7 @@ void readDictionary(char *filename){
         if (isalpha(c) && c!='\n'){
             word[i]=c;
             i++;
-            if ((i == (len-1))){
+            if (i > (len-2)){
                len+=70;
                word = realloc(word, ((len)*sizeof(char)));
  //		word2 = realloc(word2, (70*sizeof(char))) ;
