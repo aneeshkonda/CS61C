@@ -187,7 +187,7 @@ void processInput(){
     char * word;
     //char * word1;
     //char * word2;
-    word = malloc((len)*sizeof(char));
+    word = malloc((len+1)*sizeof(char));
     while (c != EOF){
         c = getchar();
         if (isalpha(c)){
@@ -236,12 +236,12 @@ void processInput(){
             else if (c==' ' || ispunct(c) || isdigit(c) ) {
                fprintf(stdout, "%c",c);
             }
-            //else if (c==EOF){
-            //    break;
-            //}
+            else if (c==EOF){
+                break;
+            }
         }
         
         }
-    //free(word);
+    free(word);
 
 }
