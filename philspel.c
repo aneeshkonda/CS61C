@@ -90,9 +90,11 @@ int stringEquals(void *s1, void *s2){
   char *string2 = (char *) s2;
   
   if (strcmp(string1, string2)){
+//free(string1);
         return 0;
   }
   else{
+//free(string1);
         return 1;
   }
   //fprintf(stderr,"Need to define stringEquals\n");
@@ -117,9 +119,11 @@ void readDictionary(char *filename){
   int c;
   c=0;
   char *word;
+//  char *word2;
   //int size;
   int len=70;
   word = malloc((len+1)*sizeof(char));
+  //word2 = malloc((len)*sizeof(char));
   int i;
   i=0;
   //key= malloc(sizeof(char));
@@ -132,19 +136,22 @@ void readDictionary(char *filename){
         if (isalpha(c) && c!='\n'){
             word[i]=c;
             i++;
-            if (i > (len-2)){
+            if ((i == (len-1))){
                len+=70;
-               word = realloc(word, (70*sizeof(char)));
-            }
+               word = realloc(word, ((len)*sizeof(char)));
+ //		word2 = realloc(word2, (70*sizeof(char))) ;
+          }
         }
         else {
             word[i]='\0';
             i=0;
+	    len=70;
+	//    word2 = malloc((strlen(word))*sizeof(char));
+	//    strcpy(word2,word);
             insertData(dictionary, word, word);
             //fprintf(stdout, "%s\n", word);  
             }
             }
-            
     //printf("down");
     fclose(fin);
     }
@@ -152,6 +159,7 @@ void readDictionary(char *filename){
         printf("Sorry, no file found");
     }
   free(word);
+//  free(word2);
 }
 
 
@@ -186,27 +194,30 @@ void processInput(){
     int j;
     i=0;
     char * word;
-    word = malloc((len+1)*sizeof(char));
+    //char * word1;
+    //char * word2;
+    word = malloc((len)*sizeof(char));
     while (c != EOF){
         c = getchar();
         if (isalpha(c)){
             word[i]=c;
             i++;
-            if (i > len){
+            if (i > (len-2)){
                     len+=70;
-               word = realloc(word, 70*sizeof(char));
+               word = realloc(word,( len *sizeof(char)));
             }
         }
         else {
             word[i]='\0';
             i=0;
-
+	    len=70;
             if (word[0] != '\0'){
             fprintf(stdout, "%s", word);    
                 j=1;
                 if (findData(dictionary, word)!= NULL){
                 }
                 else{
+              
                     while (word[j] != '\0'){
                             word[j]= tolower(word[j]);
                             j++;
@@ -214,6 +225,8 @@ void processInput(){
                     if (findData(dictionary, word)!= NULL){
                     }
                     else{
+		//	word2 = malloc((strlen(word))*sizeof(char));
+                //    	strcpy(word2,word1);
                         word[0]=tolower(word[0]);
 
                         if (findData(dictionary, word)!= NULL){
@@ -232,9 +245,9 @@ void processInput(){
             else if (c==' ' || ispunct(c) || isdigit(c) ) {
                fprintf(stdout, "%c",c);
             }
-            else if (c==EOF){
-                break;
-            }
+            //else if (c==EOF){
+            //    break;
+            //}
         }
         
         }
