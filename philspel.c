@@ -76,7 +76,7 @@ unsigned int stringHash(void *s){
     while ((c = *str++)){
         hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
     }
-
+	
     return hash;
 }
 
@@ -89,14 +89,8 @@ int stringEquals(void *s1, void *s2){
   char *string1 = (char *) s1;
   char *string2 = (char *) s2;
   
-  if (strcmp(string1, string2)){
-//free(string1);
-        return 0;
-  }
-  else{
-//free(string1);
-        return 1;
-  }
+ return ! strcmp(string1,string2);
+  
   //fprintf(stderr,"Need to define stringEquals\n");
   //exit(0);
 }
@@ -119,18 +113,15 @@ void readDictionary(char *filename){
   int c;
   c=0;
   char *word;
-//  char *word2;
-  //int size;
+  char *key;
   int len=70;
   word = malloc((len+1)*sizeof(char));
-  //word2 = malloc((len)*sizeof(char));
   int i;
   i=0;
-  //key= malloc(sizeof(char));
   FILE * fin;
   fin = fopen(filename, "r");
   if (fin != NULL){
-    while (c!=EOF){
+	  while (c!=EOF){
         c = getc(fin);
         //printf("%c", c);
         if (isalpha(c) && c!='\n'){
@@ -146,11 +137,11 @@ void readDictionary(char *filename){
             word[i]='\0';
             i=0;
 	    len=70;
-	//    word2 = malloc((strlen(word))*sizeof(char));
-	//    strcpy(word2,word);
-            insertData(dictionary, word, word);
-            //fprintf(stdout, "%s\n", word);  
+	    key=malloc((strlen(word)+1)*sizeof(char));
+            strcpy(key,word);
+	    insertData(dictionary, key, word);
             }
+
             }
     //printf("down");
     fclose(fin);
@@ -158,7 +149,7 @@ void readDictionary(char *filename){
     else{
         printf("Sorry, no file found");
     }
-  free(word);
+    free(word);
 //  free(word2);
 }
 
