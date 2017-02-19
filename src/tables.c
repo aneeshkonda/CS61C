@@ -61,6 +61,8 @@ SymbolTable* create_table(int mode) {
 /* Frees the given SymbolTable and all associated memory. */
 void free_table(SymbolTable* table) {
     /* YOUR CODE HERE */
+    free(table->tbl);
+    free(table);
 }
 
 /* A suggested helper function for copying the contents of a string. */
@@ -92,6 +94,59 @@ static char* create_copy_of_str(const char* str) {
  */
 int add_to_table(SymbolTable* table, const char* name, uint32_t addr) {
     /* YOUR CODE HERE */
+    /*int size= strlen(name)+1;
+    char* newName = malloc(size *sizeof(char));
+    strcpy(newName, name);
+    */
+    char* newName = create_copy_of_str(name);
+    
+    
+    //not word-aligned, call addr_alignment_incorrect() and return -1.
+    if(addr  % 4 !=  0)  {
+      addr_alignment_incorrect();
+      return -1;
+    }
+    //If the table's mode is SYMTBL_UNIQUE_NAME and NAME already exists in the table, you should call name_already_exists() and return -1
+    if ((table -> mode)) {
+        for(int i = 0; i < table->len; i++) {
+            if(!strcmp(table->tbl[i].name, newName)) {
+                name_already_exists(newName);
+                return -1;
+            }
+        }
+    }
+    //If memory allocation fails, you should call allocation_failed().
+    
+    Symbol* newSymbol;
+    
+    if ((table->cap * 4) <= addr)  {
+        int size_sym = (addr / 4) + 1
+        newSymbol = malloc(( size_sym * sizeof(Symbol));
+        if(!newSymbol){
+            allocation_failed();
+        }
+
+        for(int i = 0; i < size_sym ; i++) {
+            if (i < table->cap ){
+                newSymbol[i] = table->tbl[i];
+            }
+            else{
+                newSymbol[i].name = NULL;
+                newSymbol[i].addr = i * 4;
+            }
+        }
+        
+        free(table->tbl);
+        table->cap = size_sym;
+        table->tbl = temp;
+    
+    }
+    
+    //otherwise, you should store the symbol name and address and return 0.
+    int newPos=addr/4;
+    table->tbl[newPos].addr = addr;
+    table->tbl[newPos].name = newName;
+    
     return 0;
 }
 
