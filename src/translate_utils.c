@@ -55,7 +55,23 @@ int is_valid_label(const char* str) {
  */
 int translate_num(long int* output, const char* str, long int lower_bound, long int upper_bound) { 
     /* YOUR CODE HERE */
-    return 0;
+    
+    char *pEnd;
+    //print(output, str);
+    if (str[1] == 'x' && str[0] == '0' && strlen(str) > 3){
+        *output = strtol(str,&pEnd,16);
+    } else {
+        *output = strtol(str,&pEnd,10);
+    }
+    
+    if (*output < upper_bound && *output > upper_bound){
+        return 0;
+        }
+    else {
+    return -1;
+    }
+    //return strtol (szNumbers,&pEnd,10);;
+    */
 }
 
 /* Translates the register name to the corresponding register number. Please
