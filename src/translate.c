@@ -7,6 +7,8 @@
 #include "translate.h"
 
 const int TWO_POW_SEVENTEEN = 131072;    // 2^17
+//const int LONG_MIN =-2147483648
+//const int ULONG_MAX= 4294967295
 
 /* Writes instructions during the assembler's first pass to OUTPUT. The case
    for general instructions has already been completed, but you need to write
@@ -39,13 +41,54 @@ const int TWO_POW_SEVENTEEN = 131072;    // 2^17
  */
 unsigned write_pass_one(FILE* output, const char* name, char** args, int num_args) {
     if (strcmp(name, "li") == 0) {
-        /* YOUR CODE HERE */
+       /* YOUR CODE HERE */
+       
+        if (num_args == 2){
+        //- make sure that the number is representable by 32 bits (signed).
+        long int imm;
+        if (!(translate_num(&imm, args[1], LONG_MIN, ULONG_MAX))){
+            if ((imm <= UINT_MAX && imm >= INT_MIN ) {
+                fprintf(output, "addiu %s $0 %li\n", args[0], imm);
+            } 
+            else {
+                fprintf(output, "lui %s %i\n", args[0], (immediate >> 16));
+                fprintf(output, "ori %s %s %i\n", args[0], args[0], (immediate & 0xffff));
+            }
+            return 2;
+            }
+        }
+        return 0;
+     
     } else if (strcmp(name, "pi") == 0) {
-    	/* YOUR CODE HERE */
+        /* YOUR CODE HERE */
+        
+        if (num_args == 2){
+            fprintf(output, "addiu %s $0 3\n",args[0]);
+            fprintf(output, "addiu %s $0 1\n",args[1]);
+            fprintf(output, "addiu %s $0 4\n",args[2]);
+            return 3;
+        }
+    	//fprintf(output, "pi 3 1 4\n");
+        return 0;
+        
     } else if (strcmp(name, "neg") == 0) {
     	/* YOUR CODE HERE */
+        if (num_args == 2){
+            fprintf(output, "xor %s %s 0xffffffff\n",args[0], args[0] );
+            return 2;
+        }
+        return 0;
+        
+        
     } else if (strcmp(name, "mfhilo") == 0) {
     	/* YOUR CODE HERE */
+        if (num_args == 2){
+            fprintf(output, "mfhi %s\n",args[0]);
+            fprintf(output, "mflo %s\n",args[1]);
+            return 2;
+        }
+        return 0;
+        
     }
     write_inst_string(output, name, args, num_args);
     return 1;
