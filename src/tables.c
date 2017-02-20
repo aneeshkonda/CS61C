@@ -120,8 +120,8 @@ int add_to_table(SymbolTable* table, const char* name, uint32_t addr) {
     Symbol* newSymbol;
     
     if ((table->cap * 4) <= addr)  {
-        int size_sym = (addr / 4) + 1
-        newSymbol = malloc(( size_sym * sizeof(Symbol));
+        int size_sym = (addr / 4) + 1;
+        newSymbol = malloc(( size_sym * sizeof(Symbol)));
         if(!newSymbol){
             allocation_failed();
         }
@@ -138,7 +138,7 @@ int add_to_table(SymbolTable* table, const char* name, uint32_t addr) {
         
         free(table->tbl);
         table->cap = size_sym;
-        table->tbl = temp;
+        table->tbl = newSymbol;
     
     }
     

@@ -7,8 +7,11 @@
 #include "translate.h"
 
 const int TWO_POW_SEVENTEEN = 131072;    // 2^17
-//const int LONG_MIN =-2147483648
-//const int ULONG_MAX= 4294967295
+#define LONG_MAX 0x7FFFFFFFL
+#define LONG_MIN ((long) 0x80000000L)
+#define ULONG_MAX 0xFFFFFFFFUL
+#define UINT_MAX 0xFFFFU/0xFFFFFFFFUL
+#define INT_MIN ((int) 0x8000/0x80000000)
 
 /* Writes instructions during the assembler's first pass to OUTPUT. The case
    for general instructions has already been completed, but you need to write
@@ -47,12 +50,12 @@ unsigned write_pass_one(FILE* output, const char* name, char** args, int num_arg
         //- make sure that the number is representable by 32 bits (signed).
         long int imm;
         if (!(translate_num(&imm, args[1], LONG_MIN, ULONG_MAX))){
-            if ((imm <= UINT_MAX && imm >= INT_MIN ) {
+            if (imm <= UINT_MAX && imm >= INT_MIN ) {
                 fprintf(output, "addiu %s $0 %li\n", args[0], imm);
             } 
             else {
-                fprintf(output, "lui %s %i\n", args[0], (immediate >> 16));
-                fprintf(output, "ori %s %s %i\n", args[0], args[0], (immediate & 0xffff));
+                fprintf(output, "lui %s %li\n", args[0], (imm >> 16));
+                fprintf(output, "ori %s %s %li\n", args[0], args[0], (imm & 0xffff));
             }
             return 2;
             }
@@ -163,7 +166,7 @@ int write_rtype(uint8_t funct, FILE* output, char** args, size_t num_args) {
         int rs = translate_reg(args[1]);
         int rt = translate_reg(args[2]);
         
-        if (err != -1 && rd != -1 && rt != -1) {
+        if (rs != -1 && rd != -1 && rt != -1) {
             uint32_t instruction = 0; 
             /* FILL IN ACTUAL INSTRUCTION */
             instruction = funct + (rd << 11) + (rt << 16) + (rs << 21) ;
@@ -171,9 +174,9 @@ int write_rtype(uint8_t funct, FILE* output, char** args, size_t num_args) {
             write_inst_hex(output, instruction);
             return 0;
         }
+    }
     return -1;
 }
-
 /* A helper function for writing shift instructions. You should use
    translate_num() to parse numerical arguments. translate_num() is defined
    in translate_utils.h.
@@ -237,7 +240,7 @@ int write_mult_div(uint8_t funct, FILE* output, char** args, size_t num_args) {
         if (rs != -1 && rt != -1) {
             uint32_t instruction = 0; 
             /* FILL IN ACTUAL INSTRUCTION */
-            instruction = funct + (rd << 11) + (rt << 16) + (rs << 21)
+            instruction = funct + (rt << 16) + (rs << 21);
             write_inst_hex(output, instruction);
             return 0;
         }
@@ -252,7 +255,7 @@ int write_mfhi_mflo(uint8_t funct, FILE* output, char** args, size_t num_args) {
         if (rd != -1) {
             uint32_t instruction = 0; 
             /* FILL IN ACTUAL INSTRUCTION */
-            instruction = funct + (rd << 11)
+            instruction = funct + (rd << 11);
             write_inst_hex(output, instruction);
             return 0;
         }
@@ -327,11 +330,13 @@ int write_lui(uint8_t opcode, FILE* output, char** args, size_t num_args) {
         if (err != -1 && rt != -1) {
             uint32_t instruction = 0; 
             /* FILL IN ACTUAL INSTRUCTION */
-            instruction = imm + (rt << 16) + (rs << 21) +(opcode << 26);
+            instruction = imm + (rt << 16) +(opcode << 26);
             write_inst_hex(output, instruction);
             return 0;
+        }
+    }
+    return -1;
 }
-
 int write_mem(uint8_t opcode, FILE* output, char** args, size_t num_args) {
     /* PERFORM ERROR CHECKING */
 
@@ -360,7 +365,7 @@ int write_mem(uint8_t opcode, FILE* output, char** args, size_t num_args) {
 static int can_branch_to(uint32_t src_addr, uint32_t dest_addr) {
    /* YOUR CODE HERE */
    int dif_addr = dest_addr - src_addr;
-   return ( -131075 < dif_addr && dif_addr <= TWO_POW_SEVENTEEN ) 
+   return ( -131075 < dif_addr && dif_addr <= TWO_POW_SEVENTEEN ); 
 }
 
 int write_branch(uint8_t opcode, FILE* output, char** args, size_t num_args, uint32_t addr, SymbolTable* symtbl) {
@@ -373,7 +378,7 @@ int write_branch(uint8_t opcode, FILE* output, char** args, size_t num_args, uin
         /* Fill in the actual address for the given label (HINT: use the get_addr_for_symbol() function) */
         int label_addr = get_addr_for_symbol(symtbl, args[2]);
         
-        if (label_addr != -1 && rs != -1 && rt != -1 && ((label_addr << 16) >> 16) == label_addr)){
+        if (label_addr != -1 && rs != -1 && rt != -1 && ((label_addr << 16) >> 16) == label_addr){
             if (!can_branch_to(addr, label_addr)) {
                 /* Fill in the actual byte offset between the label and the current address */
                 int32_t offset = (label_addr - (addr + 4)) / 4; 
@@ -385,7 +390,8 @@ int write_branch(uint8_t opcode, FILE* output, char** args, size_t num_args, uin
                 return 0;
             }
         }
-        return -1;
+    }
+    return -1;
 }
 
 int write_jump(uint8_t opcode, FILE* output, char** args, size_t num_args, uint32_t addr, SymbolTable* reltbl) {
@@ -395,7 +401,7 @@ int write_jump(uint8_t opcode, FILE* output, char** args, size_t num_args, uint3
         if (err != -1) {
             uint32_t instruction = 0; 
             /* FILL IN ACTUAL INSTRUCTION */
-            instruction = (0x03ffffff & label_addr) + (opcode << 26);
+            instruction = (0x03ffffff & 0) + (opcode << 26);
             write_inst_hex(output, instruction);
             return 0;
         }

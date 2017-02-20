@@ -70,8 +70,8 @@ int translate_num(long int* output, const char* str, long int lower_bound, long 
     else {
     return -1;
     }
-    //return strtol (szNumbers,&pEnd,10);;
-    */
+    //return strtol (szNumbers,&pEnd,10);
+    
 }
 
 /* Translates the register name to the corresponding register number. Please

@@ -152,14 +152,43 @@ int pass_one(FILE* input, FILE* output, SymbolTable* symtbl) {
 
         // Scan for the instruction name. If no name is found, then
         // move to the next line.
-	char *token = strtok(buf, IGNORE_CHARS);
-
+        char *token = strtok(buf, IGNORE_CHARS);
+        if (!token) {
+			continue;
+		}
         // Handle Labels. If a label is found, get the next token.
-
+        int lable = add_if_label(input_line, token, byte_offset, symtbl);
+        if (lable) {
+            if (lable == 1 ){
+                token = strtok(NULL, IGNORE_CHARS);
+                if ( !token ) {
+                    continue;
+			}
+            }
+            else if ( lable == -1 ){
+                ret_code= -1;
+                continue;
+            }
+        
+        
         // Scan for arguments. On error, continue to the next line.
         char* args[MAX_ARGS];
         int num_args = 0;
-	
+        while ( !token ) {
+			args[num_args] = token;
+            if ( MAX_ARGS <= num_args ) {
+				raise_extra_arg_error(input_line, token);
+				ret_code = -1;
+				break;
+            }
+            lable = add_if_label(input_line, token, byte_offset, symtbl)
+			if ( lable == 1) {
+				ret_code = -1;
+				continue;
+			}
+			num_args++;
+			token = strtok(NULL, IGNORE_CHARS);
+		}
 
     	// Checks to see if there were any errors when writing instructions
         unsigned int lines_written = write_pass_one(output, token, args, num_args);
@@ -197,19 +226,34 @@ int pass_two(FILE *input, FILE* output, SymbolTable* symtbl, SymbolTable* reltbl
 
         /* Next, use strtok() to scan for next character.*/
         char* name = strtok(buf, IGNORE_CHARS);
-
+        //strcpy(buffer, name);
         // Check to see if name if a name was found. If not, move to the next line
-
+        if ( !name) {
+            continue;
+        }
         /* Parse for instruction arguments. You should use strtok() to tokenize
            the rest of the line. Extra arguments should be filtered out in pass_one(),
            so you don't need to worry about that here. */
         char* args[MAX_ARGS];
         int num_args = 0;
-
+        name = strtok(NULL, IGNORE_CHARS);
+        while( name ) {
+            args[num_args] = name;
+            num_args ++;
+            name = strtok(NULL, IGNORE_CHARS);
+        }
+        
         /* Use translate_inst() to translate the instruction and write to output file.
            If an error occurs, the instruction will not be written and you should call
            raise_inst_error(). If there is no error, then make sure to increment the byte offset  */
-    }
+            if (!translate_inst(output, name, args, num_args, byte_offset, symtbl, reltbl)) {
+                raise_inst_error(input_line, name, args, num_args);
+                ret_code= -1;
+            }
+            else{
+                byte_offset += 4;
+            }
+        }
     /* Repeat until no more characters are left */
 
     return ret_code;
