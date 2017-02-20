@@ -57,20 +57,16 @@ int translate_num(long int* output, const char* str, long int lower_bound, long 
     /* YOUR CODE HERE */
     
     char *pEnd;
-    //print(output, str);
-    if (str[1] == 'x' && str[0] == '0' && strlen(str) > 3){
-        *output = strtol(str,&pEnd,16);
-    } else {
-        *output = strtol(str,&pEnd,10);
-    }
-    
-    if (*output < upper_bound && *output > upper_bound){
-        return 0;
-        }
-    else {
+     if ( !str || !output){
+	return -1;
+	}
+    /* YOUR CODE HERE */
+
+    *output = strtol(str, &pEnd, 0);
+    if (lower_bound <= *output && *output <= upper_bound && *pEnd == 0){
+	 return 0;
+	}
     return -1;
-    }
-    //return strtol (szNumbers,&pEnd,10);
     
 }
 

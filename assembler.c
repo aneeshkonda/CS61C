@@ -161,7 +161,8 @@ int pass_one(FILE* input, FILE* output, SymbolTable* symtbl) {
         if (lable) {
             if (lable == 1 ){
                 token = strtok(NULL, IGNORE_CHARS);
-                if ( !token ) {
+                }
+	    if ( !token ) {
                     continue;
 			}
             }
@@ -181,7 +182,7 @@ int pass_one(FILE* input, FILE* output, SymbolTable* symtbl) {
 				ret_code = -1;
 				break;
             }
-            lable = add_if_label(input_line, token, byte_offset, symtbl)
+            lable = add_if_label(input_line, token, byte_offset, symtbl);
 			if ( lable == 1) {
 				ret_code = -1;
 				continue;
