@@ -98,7 +98,7 @@ int add_to_table(SymbolTable* table, const char* name, uint32_t addr) {
     char* newName = malloc(size *sizeof(char));
     strcpy(newName, name);
     */
-    Symbol* newName = create_copy_of_str(name);
+//    Symbol newName = create_copy_of_str(name);
     
     
     //not word-aligned, call addr_alignment_incorrect() and return -1.
@@ -110,7 +110,7 @@ int add_to_table(SymbolTable* table, const char* name, uint32_t addr) {
     if ((get_addr_for_symbol(table, name) != -1) && (table -> mode)) {
         //for(int i = 0; i < table->len; i++) {
         //    if(!strcmp(table->tbl[i].name, newName)) {
-                name_already_exists(newName);
+                name_already_exists(name);
                 return -1;
             }
 //        }
@@ -150,8 +150,11 @@ int add_to_table(SymbolTable* table, const char* name, uint32_t addr) {
     //otherwise, you should store the symbol name and address and return 0.
     //int newPos=addr/4;
     table->tbl[newPos].addr = addr;
-    table->tbl[newPos].name = newName;
+    table->tbl[newPos].name = create_copy_of_str(name);
+    //Symbol newName = create_copy_of_str(name);
+
     table -> len =newPos+ 1; 
+
     return 0;
 }
 
