@@ -98,7 +98,7 @@ int add_to_table(SymbolTable* table, const char* name, uint32_t addr) {
     char* newName = malloc(size *sizeof(char));
     strcpy(newName, name);
     */
-    char* newName = create_copy_of_str(name);
+    Symbol* newName = create_copy_of_str(name);
     
     
     //not word-aligned, call addr_alignment_incorrect() and return -1.
@@ -107,21 +107,21 @@ int add_to_table(SymbolTable* table, const char* name, uint32_t addr) {
       return -1;
     }
     //If the table's mode is SYMTBL_UNIQUE_NAME and NAME already exists in the table, you should call name_already_exists() and return -1
-    if ((table -> mode)) {
-        for(int i = 0; i < table->len; i++) {
-            if(!strcmp(table->tbl[i].name, newName)) {
+    if ((get_addr_for_symbol(table, name) != -1) && (table -> mode)) {
+        //for(int i = 0; i < table->len; i++) {
+        //    if(!strcmp(table->tbl[i].name, newName)) {
                 name_already_exists(newName);
                 return -1;
             }
-        }
-    }
+//        }
+//    }
     //If memory allocation fails, you should call allocation_failed().
     
-    Symbol* newSymbol;
-    
-    if ((table->cap * 4) <= addr)  {
-        int size_sym = (addr / 4) + 1;
-        newSymbol = malloc(( size_sym * sizeof(Symbol)));
+    //Symbol* newSymbol;
+    int newPos=table->len;
+    if (table->cap <= table->len)  {
+        int size_sym = 2*(table->len);
+        /*newSymbol = malloc(( size_sym * sizeof(Symbol)));
         if(!newSymbol){
             allocation_failed();
         }
@@ -135,18 +135,23 @@ int add_to_table(SymbolTable* table, const char* name, uint32_t addr) {
                 newSymbol[i].addr = i * 4;
             }
         }
-        
-        free(table->tbl);
-        table->cap = size_sym;
-        table->tbl = newSymbol;
-    
+        */
+	table->tbl = realloc(table->tbl , size_sym * sizeof(Symbol));
+        if (!(table -> tbl)) {
+        	allocation_failed();
+      	}
+	//free(table->tbl);
+        //table->cap = size_sym;
+        //table->tbl = newSymbol;
+	//table -> len = size_sym; 
+	table -> cap = size_sym; 
     }
     
     //otherwise, you should store the symbol name and address and return 0.
-    int newPos=addr/4;
+    //int newPos=addr/4;
     table->tbl[newPos].addr = addr;
     table->tbl[newPos].name = newName;
-    
+    table -> len =newPos+ 1; 
     return 0;
 }
 
