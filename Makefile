@@ -1,4 +1,4 @@
-CFLAGS=$(pkg-config --cflags --libs python3) -Wno-unused-result -O3 -std=c99 -fopenmp
+CFLAGS=-Wno-unused-result -mavx -O3 -std=c99 -fopenmp
 all: cnn cnnModule.so
 
 cnn: src/cnn.c src/util.c src/main.c src/timestamp.c
