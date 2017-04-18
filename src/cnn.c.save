@@ -64,28 +64,26 @@ static vol_t* make_vol(int sx, int sy, int d, double v) {
   out->sx = sx;
   out->sy = sy;
   out->depth = d;
-  #pragma omp parallel for
-//  int numTher = omp_get_num_threads();
-//  int curTher = omp_get_thread_num();
-  for (int z = 0; z < d; z++)
+
+  for (int x = 0; x < sx; x++)
     for (int y = 0; y < sy; y++)
-     	for (int x = 0; x < sx; x ++)
-        	set_vol(out, x, y, z, v);
+      for (int z = 0; z < d; z++)
+        set_vol(out, x, y, z, v);
+
   return out;
 }
+
 /*
  * Copy the contents of one Volume to another (assuming same dimensions).
  */
 
 static vol_t* copy_vol(vol_t* dest, vol_t* src) {
-#pragma opm parallel for
-//  int numTher = omp_get_num_threads();
-//  int curTher = omp_get_thread_num();
   for (int x = 0; x < dest->sx; x++)
     for (int y = 0; y < dest->sy; y++)
       for (int z = 0; z < dest->depth; z++)
         set_vol(dest, x, y, z, get_vol(src, x, y, z));
 }
+
 /*
  * Deallocate the array.
  */
@@ -160,12 +158,10 @@ conv_layer_t* make_conv_layer(int in_sx, int in_sy, int in_depth,
   l->out_sy = floor((l->in_sy + l->pad * 2 - l->sy) / l->stride + 1);
 
   l->filters = (vol_t**)malloc(sizeof(vol_t*)*filters);
-    #pragma omp parallel 
-//    int numTh = omp_get_num_threads();
-//    int curTh = omp_get_thread_num();
-  for (int i = 0; i < filters ; i++) {
+  for (int i = 0; i < filters; i++) {
     l->filters[i] = make_vol(l->sx, l->sy, l->in_depth, 0.0);
-    }
+  }
+
   l->bias = 0.0;
   l->biases = make_vol(1, 1, l->out_depth, l->bias);
 
@@ -173,11 +169,6 @@ conv_layer_t* make_conv_layer(int in_sx, int in_sy, int in_depth,
 }
 
 void conv_forward(conv_layer_t* l, vol_t** in, vol_t** out, int start, int end) {
-//    #pragma omp parallel
-//	{
-//    int numTh = omp_get_num_threads();
-//    int curTh = omp_get_thread_num();
-//#pragma omp parallel for
   for (int i = start; i <= end; i++) {
     vol_t* V = in[i];
     vol_t* A = out[i];
@@ -185,43 +176,24 @@ void conv_forward(conv_layer_t* l, vol_t** in, vol_t** out, int start, int end) 
     int V_sx = V->sx;
     int V_sy = V->sy;
     int xy_stride = l->stride;
-    int outSx = l->out_sx;
-    int outSy = l->out_sy;
-    int pd = -l->pad;
+  
     for(int d = 0; d < l->out_depth; d++) {
       vol_t* f = l->filters[d];
-      int fSy = f->sy;
-      int fSx = f->sx;
-      int fdep = f->depth;
-      int vdep = V->depth;
-      int x = pd;
-      int y = pd;
-      for(int ay = 0; ay < outSy; y += xy_stride, ay++) {
-        x = pd;
-        for(int ax=0; ax < outSx; x += xy_stride, ax++) {
+      int x = -l->pad;
+      int y = -l->pad;
+      for(int ay = 0; ay < l->out_sy; y += xy_stride, ay++) {
+        x = -l->pad;
+        for(int ax=0; ax < l->out_sx; x += xy_stride, ax++) {
           double a = 0.0;
-          for(int fy = 0; fy < fSy; fy++) {
+          for(int fy = 0; fy < f->sy; fy++) {
             int oy = y + fy;
-	  if(oy < V_sy && oy >= 0){
-            for(int fx = 0; fx < fSx; fx++) {
+            for(int fx = 0; fx < f->sx; fx++) {
               int ox = x + fx;
-              if(ox < V_sx && ox >=0) { 
-                for(int fd=0;fd < fdep/4*4; fd += 4) {
-		int first= ((fSx * fy)+fx)*fdep+fd;
-		int sec= ((V_sx * oy)+ox)*vdep+fd;
-                  a += f->w[first] * V->w[sec];
-                  a += f->w[first+1] * V->w[sec+1];
-                  a += f->w[first+2] * V->w[sec+2];
-                  a += f->w[first+3] * V->w[sec+3];
-     //             a += f->w[first+4] * V->w[sec+4];
-     //             a += f->w[first+5] * V->w[sec+5];
-     //             a += f->w[first+6] * V->w[sec+6];
-    //              a += f->w[first+7] * V->w[sec+7];
-                }
-		for(int fd=fdep/4*4 ;fd < fdep; fd++) {
+              if(oy >= 0 && oy < V_sy && ox >=0 && ox < V_sx) {
+                for(int fd=0;fd < f->depth; fd++) {
                   a += f->w[((f->sx * fy)+fx)*f->depth+fd] * V->w[((V_sx * oy)+ox)*V->depth+fd];
                 }
-              }}
+              }
             }
           }
           a += l->biases->w[d];
@@ -229,9 +201,9 @@ void conv_forward(conv_layer_t* l, vol_t** in, vol_t** out, int start, int end) 
         }
       }
     }
- // }
   }
 }
+
 void conv_load(conv_layer_t* l, const char* fn) {
   int sx, sy, depth, filters;
 
@@ -687,64 +659,12 @@ void net_forward(network_t* net, batch_t* v, int start, int end) {
 void net_classify_cats(network_t* net, vol_t** input, double* output, int n) {
   batch_t* batch = make_batch(net, 1);
 
-//  #pragma omp parallel
-          #pragma omp parallel
-        {
-        int numTher = omp_get_num_threads();
-        int curTher = omp_get_thread_num();
-        int chun = n / numTher;
-        int rem = n % numTher;
-    int end = (curTher+1) *chun;
-    if (curTher == numTher -1) {
-      end = n;
-    } 
- for (int i = curTher*chun ; i < ((curTher+1) *chun)/3*3; i+=3) {
-//	int ba = batch[0][0];
-    copy_vol(batch[0][0], input[i]);
-     net_forward(net, batch, 0, 0);
-    output[i] = batch[11][0]->w[CAT_LABEL];
-
-  copy_vol(batch[0][0], input[i+1]);
-//     net_forward(net, batch, 0, 0);
-    output[i+1] = batch[11][0]->w[CAT_LABEL];
-
-    copy_vol(batch[0][0], input[i+2]);
-//     net_forward(net, batch, 0, 0);
-    output[i+2] = batch[11][0]->w[CAT_LABEL];
-
-//    copy_vol(batch[0][0], input[i+3]);
-//     net_forward(net, batch, 0, 0);
-//    output[i+3] = batch[11][0]->w[CAT_LABEL];
-
-//    copy_vol(batch[0][0], input[i+4]);
-//     net_forward(net, batch, 0, 0);
-//    output[i+4] = batch[11][0]->w[CAT_LABEL];
-//    copy_vol(batch[0][0], input[i+3]);
-//    net_forward(net, batch, 0, 0);
- //   output[i] = batch[11][0]->w[CAT_LABEL]; 
-
-//    copy_vol(batch[0][0], input[i+1]);
-//    net_forward(net, batch, 0, 0);
-//    output[i+1] = batch[11][0]->w[CAT_LABEL]; 
-
-//    copy_vol(batch[0][0], input[i+2]);
-//     net_forward(net, batch, 0, 0);
-//     net_forward(net, batch, 0, 0);
-//     net_forward(net, batch, 0, 0);
-
-//     net_forward(net, batch, 0, 0);
-//  int bache = batch[11][0]->w[CAT_LABEL];
-//    output[i] =output[i+1]=output[i+2] = batch[11][0]->w[CAT_LABEL]; 
-//    output[i+3] = batch[11][0]->w[CAT_LABEL]; 
-//    output[i+2] = batch[11][0]->w[CAT_LABEL]; 
-
-  }
-  for (int i = end/3*3; i < end; i++) {
+  for (int i = 0; i < n; i++) {
     copy_vol(batch[0][0], input[i]);
     net_forward(net, batch, 0, 0);
     output[i] = batch[11][0]->w[CAT_LABEL]; 
   }
-}
+
   free_batch(batch, 1);
 }
 
