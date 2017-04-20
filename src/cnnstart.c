@@ -64,26 +64,26 @@ static vol_t* make_vol(int sx, int sy, int d, double v) {
   out->sx = sx;
   out->sy = sy;
   out->depth = d;
-int x,y,z;
-#pragma opm parallel for private(x,y,z)
-  for (int z = 0; z < d; z++)
+
+  for (int x = 0; x < sx; x++)
     for (int y = 0; y < sy; y++)
-     	for (int x = 0; x < sx; x ++)
-        	set_vol(out, x, y, z, v);
+      for (int z = 0; z < d; z++)
+        set_vol(out, x, y, z, v);
+
   return out;
 }
+
 /*
  * Copy the contents of one Volume to another (assuming same dimensions).
  */
 
 static vol_t* copy_vol(vol_t* dest, vol_t* src) {
-int x,y,z;
-#pragma opm parallel for private(x,y,z)
   for (int x = 0; x < dest->sx; x++)
     for (int y = 0; y < dest->sy; y++)
       for (int z = 0; z < dest->depth; z++)
         set_vol(dest, x, y, z, get_vol(src, x, y, z));
 }
+
 /*
  * Deallocate the array.
  */
@@ -158,214 +158,51 @@ conv_layer_t* make_conv_layer(int in_sx, int in_sy, int in_depth,
   l->out_sy = floor((l->in_sy + l->pad * 2 - l->sy) / l->stride + 1);
 
   l->filters = (vol_t**)malloc(sizeof(vol_t*)*filters);
-int i;
-int lSx=l->sx;
-int lSy=l->sy;
-int ldep=l->in_depth;
-    #pragma omp parallel for private(i)
-  for (int i = 0; i < filters ; i++) {
-    l->filters[i] = make_vol(lSx, lSy, ldep, 0.0);
-    }
+  for (int i = 0; i < filters; i++) {
+    l->filters[i] = make_vol(l->sx, l->sy, l->in_depth, 0.0);
+  }
+
   l->bias = 0.0;
   l->biases = make_vol(1, 1, l->out_depth, l->bias);
 
   return l;
 }
 
-
-void conv_forward3(conv_layer_t* l, vol_t** in, vol_t** out, int start, int end) {
-double a=0.0;
-int fst,sec;
-int oy,ox;
-  for (int i = start; i <= end; i++) {
-    vol_t* V = in[i];
-    vol_t* A = out[i];
-    int V_sx = V->sx;
-    int V_sy = V->sy;
-    int xy_stride = l->stride;
-    int V_dep = V->depth;
-    int pad= -l->pad;
-    for(int d = 0; d < l->out_depth; d++) {
-      vol_t* f = l->filters[d];
-      int x = pad;
-      int y = pad;
-      int f_sx = f->sx;
-      for(int ay = 0; ay < 32/*l->out_sy*/; y += xy_stride, ay++) {
-        x=pad;
-        for(int ax=0; ax < 32/*l->out_sx*/; x += xy_stride, ax++) {
-          a = 0.0;
-          for(int fy = 0; fy < 5; fy++) {
-            oy = y + fy;
-	    if (oy > -1 && oy < 32/*V_sy*/){
-    	      for(int fx = 0; fx < 5 ; fx++) {
-                ox = x + fx;
-                if( ox > -1 && ox < 32) { 
-		  fst = ((5 * fy)+fx)*3;
-		  sec = ((32 * oy)+ox)*3;
-		  a += f->w[fst] * V->w[sec] +  f->w[fst+1] * V->w[sec+1] +  f->w[fst+2] * V->w[sec+2];
-                }
-	      }
-            }
-          }
-         a += l->biases->w[d];
-         set_vol(A, ax, ay, d, a);
-        }
-      }
-    }
-  }
-}
-
-
-void conv_forward16(conv_layer_t* l, vol_t** in, vol_t** out, int start, int end) {
-int fst,sec;
-int oy,ox;
-//double tot=0;
-//#pragma omp parallel for
-//int fst,sec;
-//int oy,ox;
-  for (int i = start; i <= end; i++) {
-    vol_t* V = in[i];
-    vol_t* A = out[i];
-    int V_sx = V->sx;
-    int V_sy = V->sy;
-    int xy_stride = l->stride;
-    int V_dep = V->depth;
-    int pad= -l->pad;
-    double* vVal = V->w;
-    for(int d = 0; d < l->out_depth; d++) {
-      vol_t* f = l->filters[d];
-      int x = pad;
-       double bias=l->biases->w[d];
-      int y = pad;
-      int f_sx = f->sx;
-      double* fval = f->w;
-	double a;
-      for(int ay = 0; ay < l->out_sy; y += xy_stride, ay++) {
-        x=pad;
-        for(int ax=0; ax < l->out_sx; x += xy_stride, ax++) {
-          a = 0.0;
-  	 double tot=0.0;
-          __m128d sum;
-          for(int fy = 0; fy < 5; fy++) {
-            oy = y + fy;
-            if (oy > -1 && oy < 16/*V_sy*/){
-              for(int fx = 0; fx < 5 ; fx++) {
-                ox = x + fx;
-                if( ox > -1 && ox < 16) {
-                int sec =((16 * oy)+ox)*16;
-                int fst= ((5 * fy)+fx)*16;
-                 __m256d fst1 =  _mm256_loadu_pd((double *)(fval +fst));
-                 __m256d fst2 =  _mm256_loadu_pd((double *)(fval +(fst+4)));
-                 __m256d fst3 =  _mm256_loadu_pd((double *)(fval +(fst+8)));
-                 __m256d fst4 =  _mm256_loadu_pd((double *)(fval +(fst+12)));
-                 __m256d sec1 = _mm256_loadu_pd((double *) (vVal+sec));
-                 __m256d sec2 = _mm256_loadu_pd((double *)(vVal + (sec + 4)));
-                 __m256d sec3 = _mm256_loadu_pd((double *) (vVal + (sec +8)));
-                 __m256d sec4 = _mm256_loadu_pd((double *)(vVal + (sec +12)));
-                  sec1 = _mm256_mul_pd(fst1, sec1);    sec2 = _mm256_mul_pd(fst2, sec2);
-                   sec3 = _mm256_mul_pd(fst3, sec3);    sec4 = _mm256_mul_pd(fst4, sec4);
-                   sec1 = _mm256_add_pd(sec1, sec2);    sec2 = _mm256_add_pd(sec3, sec4);
-                   sec1 = _mm256_add_pd(sec1, sec2);    sec1 = _mm256_hadd_pd(sec1,sec1);
-                   sum = _mm256_extractf128_pd(sec1,0);
-                   sum = _mm_add_pd(sum, _mm256_extractf128_pd(sec1,1));
-                   tot =  _mm_cvtsd_f64(sum);
-                   a += tot;
-                }
-              }
-            }
-          }
-         a += bias;
-         set_vol(A, ax, ay, d, a);
-        }
-      }
-    }
-  }
-}
-
-
-
 void conv_forward(conv_layer_t* l, vol_t** in, vol_t** out, int start, int end) {
-int dep=l->in_depth;
-  if (dep == 3) {
-    conv_forward3(l, in, out, start, end);
-  }
- else if (dep == 16) {
-    conv_forward16(l, in, out, start,end);
-  }
- else {
-int d,ay, ax, fy, fx, fd;
-//#pragma omp parallel for private(d, ay, ax, fy, fx, fd)
-int fst,sec;
-int oy,ox;
-#pragma omp parallel for private(d, ay, ax, fy, fx, fd) 
-//double tot=0;
-//#pragma omp parallel for
-//int fst,sec;
-//int oy,ox;
   for (int i = start; i <= end; i++) {
     vol_t* V = in[i];
     vol_t* A = out[i];
+        
     int V_sx = V->sx;
     int V_sy = V->sy;
     int xy_stride = l->stride;
-    int V_dep = V->depth;
-    int pad= -l->pad;
-    double* vVal = V->w;
+  
     for(int d = 0; d < l->out_depth; d++) {
       vol_t* f = l->filters[d];
-      int x = pad;
-       double bias=l->biases->w[d];
-      int y = pad;
-      int f_sx = f->sx;
-      double* fval = f->w;
-        double a;
+      int x = -l->pad;
+      int y = -l->pad;
       for(int ay = 0; ay < l->out_sy; y += xy_stride, ay++) {
-        x=pad;
+        x = -l->pad;
         for(int ax=0; ax < l->out_sx; x += xy_stride, ax++) {
-          a = 0.0;
-         double tot=0.0;
-          __m128d sum;
-          for(int fy = 0; fy < 5; fy++) {
-            oy = y + fy;
-            if (oy > -1 && oy < 16/*V_sy*/){
-              for(int fx = 0; fx < 5 ; fx++) {
-                ox = x + fx;
-                if( ox > -1 && ox < 16) {
-                int sec =((16 * oy)+ox)*16;
-                int fst= ((5 * fy)+fx)*16;
-                 __m256d fst1 =  _mm256_loadu_pd((double *)(fval +fst));
-                 __m256d fst2 =  _mm256_loadu_pd((double *)(fval +(fst+4)));
-                 __m256d fst3 =  _mm256_loadu_pd((double *)(fval +(fst+8)));
-                 __m256d fst4 =  _mm256_loadu_pd((double *)(fval +(fst+12)));
-                 __m256d fst5 =  _mm256_loadu_pd((double *)(fval +(fst+16)));
-                 __m256d sec1 = _mm256_loadu_pd((double *) (vVal+sec));
-                 __m256d sec2 = _mm256_loadu_pd((double *)(vVal + (sec + 4)));
-                 __m256d sec3 = _mm256_loadu_pd((double *) (vVal + (sec +8)));
-                 __m256d sec4 = _mm256_loadu_pd((double *)(vVal + (sec +12)));
-                 __m256d sec5 = _mm256_loadu_pd((double *)(vVal + (sec +16)));
-                  sec1 = _mm256_mul_pd(fst1, sec1);    sec2 = _mm256_mul_pd(fst2, sec2);
-                   sec3 = _mm256_mul_pd(fst3, sec3);    sec4 = _mm256_mul_pd(fst4, sec4);
-                   sec5 = _mm256_mul_pd(fst5, sec5);
-                   sec1 = _mm256_add_pd(sec1, sec2);    sec2 = _mm256_add_pd(sec3, sec4);
-                   sec1 = _mm256_add_pd(sec1, sec2);    sec1 = _mm256_add_pd(sec1, sec5);
-                   sec1 = _mm256_hadd_pd(sec1,sec1);
-                   sum = _mm256_extractf128_pd(sec1,0);
-                   sum = _mm_add_pd(sum, _mm256_extractf128_pd(sec1,1));
-                   tot =  _mm_cvtsd_f64(sum);
-                   a += tot;
+          double a = 0.0;
+          for(int fy = 0; fy < f->sy; fy++) {
+            int oy = y + fy;
+            for(int fx = 0; fx < f->sx; fx++) {
+              int ox = x + fx;
+              if(oy >= 0 && oy < V_sy && ox >=0 && ox < V_sx) {
+                for(int fd=0;fd < f->depth; fd++) {
+                  a += f->w[((f->sx * fy)+fx)*f->depth+fd] * V->w[((V_sx * oy)+ox)*V->depth+fd];
                 }
               }
             }
           }
-         a += bias;
-         set_vol(A, ax, ay, d, a);
+          a += l->biases->w[d];
+          set_vol(A, ax, ay, d, a);
         }
       }
     }
   }
 }
-}
-
 
 void conv_load(conv_layer_t* l, const char* fn) {
   int sx, sy, depth, filters;
@@ -377,8 +214,7 @@ void conv_load(conv_layer_t* l, const char* fn) {
   assert(sy == l->sy);
   assert(depth == l->in_depth);
   assert(filters == l->out_depth);
-//int z, y, x, d;
-//#pragma omp parallel for //private(z, y, x, d)
+
   for(int d = 0; d < l->out_depth; d++)
     for (int x = 0; x < sx; x++)
       for (int y = 0; y < sy; y++)
@@ -411,7 +247,7 @@ typedef struct relu_layer {
   int out_sy;
 } relu_layer_t;
 
-  relu_layer_t* make_relu_layer(int in_sx, int in_sy, int in_depth) {
+relu_layer_t* make_relu_layer(int in_sx, int in_sy, int in_depth) {
   relu_layer_t* l = (relu_layer_t*)malloc(sizeof(relu_layer_t));
 
   // required
@@ -428,7 +264,6 @@ typedef struct relu_layer {
 }
 
 void relu_forward(relu_layer_t* l, vol_t** in, vol_t** out, int start, int end) {
-#pragma omp parallel for
   for (int j = start; j <= end; j++) {
     for (int i = 0; i < l->in_sx*l->in_sy*l->in_depth; i++) {
       out[j]->w[i] = (in[j]->w[i] < 0.0) ? 0.0 : in[j]->w[i];
@@ -782,33 +617,72 @@ batch_t* make_batch(network_t* old_net, int size) {
  */
 
 void free_batch(batch_t* v, int size) {
-  for (int i = 0 ; i < LAYERS+1 ; i++) {
+  for (int i = 0; i < LAYERS+1; i++) {
     for (int j = 0; j < size; j++) {
       free_vol(v[i][j]);
     }
     free(v[i]);
-}
+  }
   free(v);
-
 }
+
 /*
  * Apply our network to a specific batch of inputs. The batch has to be given
  * as input to v and start/end are the first and the last image in that batch
  * to process (start and end are inclusive).
  */
 
+
+double layer[11];
+double start_tim=0;
+
 void net_forward(network_t* net, batch_t* v, int start, int end) {
+//double start=0;
+  start_tim = timestamp_us();
   conv_forward(net->l0, v[0], v[1], start, end);
+  layer[0] += (double)(timestamp_us() - start_tim) /1000.0;
+  
+  start_tim = timestamp_us();
   relu_forward(net->l1, v[1], v[2], start, end);
+  layer[1] += (double)(timestamp_us()-start_tim) / 1000.0;
+
+  start_tim = timestamp_us();
   pool_forward(net->l2, v[2], v[3], start, end);
+  layer[2] += (double)(timestamp_us()-start_tim) / 1000.0;
+
+  start_tim = timestamp_us();
   conv_forward(net->l3, v[3], v[4], start, end);
+  layer[3] += (double)(timestamp_us()-start_tim) / 1000.0;
+
+  start_tim = timestamp_us();
   relu_forward(net->l4, v[4], v[5], start, end);
+  layer[4] += (double)(timestamp_us()-start_tim) / 1000.0;
+
+  start_tim = timestamp_us();
   pool_forward(net->l5, v[5], v[6], start, end);
+  layer[5] += (double)(timestamp_us()-start_tim) / 1000.0;
+
+  start_tim = timestamp_us();
   conv_forward(net->l6, v[6], v[7], start, end);
+  layer[6] += (double)(timestamp_us()-start_tim) / 1000.0;
+
+  start_tim = timestamp_us();
   relu_forward(net->l7, v[7], v[8], start, end);
+  layer[7] += (double)(timestamp_us()-start_tim) / 1000.0;
+
+  start_tim = timestamp_us();
   pool_forward(net->l8, v[8], v[9], start, end);
+  layer[8] += (double)(timestamp_us()-start_tim) / 1000.0;
+
+  start_tim = timestamp_us();
   fc_forward(net->l9, v[9], v[10], start, end);
+  layer[9] += (double)(timestamp_us()-start_tim) / 1000.0;
+
+  start_tim = timestamp_us();
   softmax_forward(net->l10, v[10], v[11], start, end);
+  layer[10] += (double)(timestamp_us()-start_tim) / 1000.0;
+
+
 }
 
 /*
@@ -822,15 +696,35 @@ void net_forward(network_t* net, batch_t* v, int start, int end) {
 
 #define CAT_LABEL 3
 void net_classify_cats(network_t* net, vol_t** input, double* output, int n) {
- #pragma omp parallel for
-  for (int i = 0 ; i < n ; i++) {
-    batch_t* batch = make_batch(net, 1);
+  batch_t* batch = make_batch(net, 1);
+
+  for (int i = 0; i < n; i++) {
     copy_vol(batch[0][0], input[i]);
     net_forward(net, batch, 0, 0);
     output[i] = batch[11][0]->w[CAT_LABEL]; 
-    free_batch(batch, 1);
   }
+
+
+  printf("layer 0 = %lf \n", layer[0]);
+  printf("layer 1 = %lf \n", layer[1]);
+  printf("layer 2 = %lf \n", layer[2]);
+  printf("layer 3 = %lf \n", layer[3]);
+  printf("layer 4 = %lf \n", layer[4]);
+  printf("layer 5 = %lf \n", layer[5]);
+  printf("layer 6 = %lf \n", layer[6]);
+  printf("layer 7 = %lf \n", layer[7]);
+  printf("layer 8 = %lf \n", layer[8]);
+  printf("layer 9 = %lf \n", layer[9]);
+  printf("layer 10 = %lf \n", layer[10]);
+  printf("conv_forward layer = %lf \n", layer[0]+layer[3]+layer[6]);
+  printf("relu_forward layer = %lf \n", layer[1]+layer[4]+layer[7]);
+  printf("pool_forward layer = %lf \n", layer[2]+layer[5]+layer[8]);
+  printf("fc_forward layer = %lf s\n", layer[9]);
+  printf("softmax_forward layer = %lf \n", layer[10]);
+
+  free_batch(batch, 1);
 }
+
 // IGNORE EVERYTHING BELOW THIS POINT -----------------------------------------
 
 // Including C files in other C files is very bad style and should be avoided
