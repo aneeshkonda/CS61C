@@ -293,11 +293,11 @@ int dep=l->in_depth;
     conv_forward16(l, in, out, start,end);
   }
  else {
-int d,ay, ax, fy, fx, fd;
+//int d,ay, ax, fy, fx, fd;
 //#pragma omp parallel for private(d, ay, ax, fy, fx, fd)
 int fst,sec;
 int oy,ox;
-#pragma omp parallel for private(d, ay, ax, fy, fx, fd) 
+//#pragma omp parallel for private(d, ay, ax, fy, fx, fd) 
 //double tot=0;
 //#pragma omp parallel for
 //int fst,sec;
@@ -319,20 +319,22 @@ int oy,ox;
       int f_sx = f->sx;
       double* fval = f->w;
         double a;
-      for(int ay = 0; ay < l->out_sy; y += xy_stride, ay++) {
+      for(int ay = 0; ay < 8; y += xy_stride, ay++) {
         x=pad;
-        for(int ax=0; ax < l->out_sx; x += xy_stride, ax++) {
+        for(int ax=0; ax < 8; x += xy_stride, ax++) {
           a = 0.0;
          double tot=0.0;
+//printf("f->sx=%d   f->sy=%d   V->sx=%d   V->sy=%d      l_out_sx=%d    l_out_sy=%d\n",f->sx,f->sy,V->sx,V->sy,l->out_sx,l->out_sy );
+//printf("f->sx=%d   f->sy=%d ",f->depth, V->depth);
           __m128d sum;
           for(int fy = 0; fy < 5; fy++) {
             oy = y + fy;
-            if (oy > -1 && oy < 16/*V_sy*/){
+            if (oy > -1 && oy < V_sy){
               for(int fx = 0; fx < 5 ; fx++) {
                 ox = x + fx;
-                if( ox > -1 && ox < 16) {
-                int sec =((16 * oy)+ox)*16;
-                int fst= ((5 * fy)+fx)*16;
+                if( ox > -1 && ox < V_sx) {
+                int sec =((8 * oy)+ox)*20;
+                int fst= ((5 * fy)+fx)*20;
                  __m256d fst1 =  _mm256_loadu_pd((double *)(fval +fst));
                  __m256d fst2 =  _mm256_loadu_pd((double *)(fval +(fst+4)));
                  __m256d fst3 =  _mm256_loadu_pd((double *)(fval +(fst+8)));
@@ -362,8 +364,8 @@ int oy,ox;
         }
       }
     }
-  }
-}
+   }
+ }
 }
 
 
